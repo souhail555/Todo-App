@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" dir="ltr" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Modern To-Do List</title>
-  <!-- Google Fonts: Inter -->
+  <title data-i18n="pageTitle">Task Manager</title>
+  <!-- Google Fonts: Inter (English) + Tajawal (Arabic) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="style.css" />
@@ -19,12 +19,19 @@
       <div class="header-top">
         <div class="header-title">
           <i class="fa-solid fa-list-check icon-brand"></i>
-          <h1>Task Manager</h1>
+          <h1 data-i18n="appTitle">Task Manager</h1>
         </div>
-        <!-- Dark Mode Toggle -->
-        <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
-          <i class="fa-solid fa-moon theme-icon" id="themeIcon"></i>
-        </button>
+        <div class="header-actions">
+          <!-- Language Toggle -->
+          <button id="langToggleBtn" class="lang-toggle-btn" title="Switch language" aria-label="Switch language">
+            <i class="fa-solid fa-globe"></i>
+            <span id="langLabel">العربية</span>
+          </button>
+          <!-- Dark Mode Toggle -->
+          <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
+            <i class="fa-solid fa-moon theme-icon" id="themeIcon"></i>
+          </button>
+        </div>
       </div>
       <p class="subtitle" id="currentDate"></p>
     </header>
@@ -38,24 +45,53 @@
           placeholder="Add a new task..."
           autocomplete="off"
           aria-label="New task input"
+          data-i18n-placeholder="inputPlaceholder"
         />
         <button type="submit" id="addBtn" class="btn btn-primary" title="Add Task">
           <i class="fa-solid fa-plus"></i>
-          <span>Add</span>
+          <span data-i18n="addBtn">Add</span>
         </button>
       </form>
+    </section>
+
+    <!-- Trial Status Banner -->
+    <section class="trial-banner" id="trialBanner">
+      <div class="trial-info">
+        <i class="fa-solid fa-hourglass-half"></i>
+        <span id="trialText">Trial: 14 days left</span>
+      </div>
+      <button id="upgradeBtn" class="btn-upgrade" data-i18n="upgradeBtn">Upgrade</button>
     </section>
 
     <!-- Filter & Statistics -->
     <section class="controls-section">
       <div class="filter-group" role="tablist">
-        <button class="filter-btn active" data-filter="all" role="tab" aria-selected="true">All</button>
-        <button class="filter-btn" data-filter="active" role="tab" aria-selected="false">Active</button>
-        <button class="filter-btn" data-filter="completed" role="tab" aria-selected="false">Completed</button>
+        <button class="filter-btn active" data-filter="all" role="tab" aria-selected="true" data-i18n="filterAll">All</button>
+        <button class="filter-btn" data-filter="active" role="tab" aria-selected="false" data-i18n="filterActive">Active</button>
+        <button class="filter-btn" data-filter="completed" role="tab" aria-selected="false" data-i18n="filterCompleted">Completed</button>
       </div>
       <div class="task-stats">
         <span class="task-counter" id="taskCounter">0 tasks left</span>
         <span class="total-counter" id="totalCounter">(0 total)</span>
+      </div>
+    </section>
+
+    <!-- Completion Progress Bar -->
+    <section class="progress-section">
+      <div class="progress-info">
+        <i class="fa-solid fa-chart-simple"></i>
+        <span id="progressText">0% completed</span>
+      </div>
+      <div
+        class="progress-bar"
+        id="progressBar"
+        role="progressbar"
+        aria-label="Task completion progress"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="0"
+      >
+        <div class="progress-fill" id="progressFill"></div>
       </div>
     </section>
 
@@ -64,7 +100,7 @@
       <ul id="taskList" class="task-list" aria-label="Task list"></ul>
       <div id="emptyState" class="empty-state">
         <i class="fa-regular fa-clipboard"></i>
-        <p id="emptyStateText">No tasks yet. Enjoy your day!</p>
+        <p id="emptyStateText" data-i18n="emptyNoTasks">No tasks yet. Enjoy your day!</p>
       </div>
     </section>
 
@@ -72,14 +108,65 @@
     <footer class="app-footer">
       <button id="clearCompletedBtn" class="btn btn-outline" title="Clear Completed Tasks">
         <i class="fa-solid fa-check-double"></i>
-        <span>Clear Completed</span>
+        <span data-i18n="clearCompleted">Clear Completed</span>
       </button>
       <button id="clearAllBtn" class="btn btn-danger" title="Clear All Tasks">
         <i class="fa-solid fa-trash"></i>
-        <span>Clear All</span>
+        <span data-i18n="clearAll">Clear All</span>
       </button>
     </footer>
   </main>
+
+  <!-- Upgrade / Paywall Modal -->
+  <div id="upgradeModal" class="modal-overlay" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="upgradeTitle">
+      <button id="closeModalBtn" class="modal-close" aria-label="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="modal-header">
+        <i class="fa-solid fa-crown crown-icon"></i>
+        <h2 id="upgradeTitle" data-i18n="upgradeTitle">Upgrade to Pro</h2>
+        <p data-i18n="upgradeSubtitle">Unlock unlimited tasks forever</p>
+      </div>
+
+      <!-- Plans -->
+      <div class="plans" id="plansStep">
+        <button class="plan-card" data-plan="monthly">
+          <span class="plan-name" data-i18n="planMonthly">Monthly</span>
+          <span class="plan-price">$3<span class="plan-period" data-i18n="perMonth">/month</span></span>
+        </button>
+        <button class="plan-card plan-featured" data-plan="yearly">
+          <span class="plan-badge" data-i18n="bestValue">Best Value</span>
+          <span class="plan-name" data-i18n="planYearly">Yearly</span>
+          <span class="plan-price">$25<span class="plan-period" data-i18n="perYear">/year</span></span>
+        </button>
+      </div>
+
+      <!-- Fake Checkout -->
+      <form id="checkoutForm" class="checkout-form" hidden>
+        <p class="checkout-summary" id="checkoutSummary"></p>
+        <input type="text" id="cardName" placeholder="Name on card" autocomplete="off" />
+        <input type="text" id="cardNumber" placeholder="4242 4242 4242 4242" inputmode="numeric" maxlength="19" autocomplete="off" />
+        <div class="checkout-row">
+          <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" autocomplete="off" />
+          <input type="text" id="cardCvc" placeholder="CVC" maxlength="4" inputmode="numeric" autocomplete="off" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-pay" id="payBtn">
+          <i class="fa-solid fa-lock"></i>
+          <span data-i18n="payNow">Pay Now</span>
+        </button>
+        <p class="demo-note" data-i18n="demoNote">Demo only — no real payment is processed</p>
+      </form>
+
+      <!-- Success -->
+      <div id="paymentSuccess" class="payment-success" hidden>
+        <i class="fa-solid fa-circle-check"></i>
+        <h3 data-i18n="paymentSuccess">Welcome to Pro!</h3>
+        <p data-i18n="proActive">Your subscription is now active.</p>
+      </div>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
