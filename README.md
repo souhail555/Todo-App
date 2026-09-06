@@ -1,101 +1,138 @@
-# Todo App — الدليل الكامل للتشغيل والنشر
+# 📋 Task Manager — Free & Open-Source To-Do Web App
 
-## بنية المشروع
+A beautiful, fully functional task manager built with **pure HTML, CSS, and JavaScript** — no frameworks, no libraries, no payments, no sign-ups. 100% free and open-source.
+
+**🔗 Live Demo:** https://souhail555.github.io/Todo-App/
+
+---
+
+## ✨ Features
+
+### Core Functionality
+- ➕ **Add tasks** — with Enter key support
+- ✏️ **Edit tasks** — click the edit button, inline editing (Enter to save, Esc to cancel)
+- 🗑️ **Delete individual tasks** — with smooth removal animation
+- ✅ **Mark complete/incomplete** — click on any task
+- 🔍 **Filter tasks** — All / Active / Completed
+- 🔢 **Live task counter** — "X tasks left (X total)"
+- 📊 **Progress bar** — shows completion percentage with smooth animation
+- 🧹 **Clear Completed** / **Clear All** buttons
+- 💾 **LocalStorage persistence** — your tasks survive page refresh
+
+### Bilingual Support (Arabic / English)
+- 🌐 **Language toggle button** at the top
+- ⚡ **Instant switching** — all UI text changes without page refresh
+- ↔️ **Full RTL/LTR support** — layout flips perfectly for Arabic
+- 💾 **Language preference saved** in LocalStorage
+
+### Extra Polish
+- 🌙 **Dark Mode / Light Mode** toggle (respects system preference on first visit)
+- ✨ **Task animations** — entrance slide, checkbox pop, smooth strikethrough
+- 🎉 **Confetti celebration** when all tasks are completed
+- 🔊 **Completion sound** — pleasant two-note "ding" via Web Audio API (no audio files needed)
+- 📱 **Fully responsive** — works on mobile, tablet, and desktop
+- 🎨 **Modern design** — purple/blue gradient background, clean card UI
+
+---
+
+## 🚀 Getting Started
+
+No build tools, no installation, no dependencies. Just open the file.
+
+### Option 1: Open directly
+```
+Simply open index.html in any web browser. That's it.
+```
+
+### Option 2: Run locally with a server (optional)
+```powershell
+# If you have Python installed:
+python -m http.server 8000
+
+# Or with Node.js:
+npx serve
+
+# Then visit http://localhost:8000
+```
+
+---
+
+## 📁 Project Structure
 
 ```
 Todo-App/
-├── index.html          ← الواجهة (منشورة على GitHub Pages)
-├── style.css
-├── script.js
-└── server/             ← الخادم (Node.js + Stripe)
-    ├── server.js       ← الكود الرئيسي
-    ├── package.json
-    ├── .env.example    ← انسخه إلى .env واملأ القيم
-    └── db.json         ← قاعدة البيانات (تُنشأ تلقائياً)
+├── index.html      ← App structure & markup
+├── style.css       ← Styling, themes, animations, RTL, responsive
+└── script.js       ← All logic, translations, storage, sound, confetti
 ```
 
----
-
-## 1️⃣ إعداد Stripe (من لوحة التحكم)
-
-1. **Products** → أنشئ منتجين:
-   - `Pro Monthly` → سعر 3 USD → Recurring → Monthly
-   - `Pro Yearly` → سعر 25 USD → Recurring → Yearly
-   - انسخ **Price ID** لكل واحد (يبدأ بـ `price_...`)
-
-2. **Developers → API keys** → انسخ **Secret key** (يبدأ بـ `sk_test_...`)
-
-3. **Developers → Webhooks** → Add endpoint:
-   - URL محلي (للاختبار): استخدم Stripe CLI — انظر الأسفل
-   - الأحداث المطلوبة: `checkout.session.completed` و `customer.subscription.deleted`
+That's all — three files.
 
 ---
 
-## 2️⃣ التشغيل المحلي
+## 🛠️ Built With
 
-```powershell
-cd server
-npm install
-copy .env.example .env
-# عدّل ملف .env واملأ القيم الحقيقية
-npm start
-```
-
-الخادم يعمل على: `http://localhost:3000`
-
-### اختبار الـ Webhook محلياً (Stripe CLI)
-
-```powershell
-# نزّل Stripe CLI من https://stripe.com/docs/stripe-cli
-stripe login
-stripe listen --forward-to localhost:3000/webhook
-# سيعطيك whsec_... — ضعه في .env كـ STRIPE_WEBHOOK_SECRET
-```
+| Technology | Purpose |
+|-----------|---------|
+| HTML5 | Structure & semantics |
+| CSS3 | Styling, CSS variables for theming, animations, flexbox |
+| Vanilla JavaScript | All app logic — no frameworks |
+| Web Audio API | Completion sound (generated in code) |
+| localStorage API | Task & preference persistence |
+| Google Fonts | Inter (English) + Tajawal (Arabic) |
+| Font Awesome | Icons (CDN) |
 
 ---
 
-## 3️⃣ النشر على Railway (مجاني)
+## 🌍 How Bilingual Support Works
 
-1. أنشئ حساب في [railway.app](https://railway.app) بحساب GitHub
-2. **New Project** → **Deploy from GitHub repo** → اختر `Todo-App`
-3. في إعدادات الخدمة:
-   - **Root Directory**: `server`
-   - **Start Command**: `npm start`
-4. **Variables** → أضف كل متغيرات `.env`:
-   - `STRIPE_SECRET_KEY`
-   - `STRIPE_WEBHOOK_SECRET`
-   - `PRICE_MONTHLY`
-   - `PRICE_YEARLY`
-   - `JWT_SECRET` (نص عشوائي طويل)
-   - `APP_URL` = `https://souhail555.github.io/Todo-App`
-5. بعد النشر خذ رابط الخادم (مثل `https://xxx.up.railway.app`)
-6. حدّث `API_URL` في `script.js` بهذا الرابط
-7. في Stripe Webhooks: أضف endpoint حقيقي `https://xxx.up.railway.app/webhook`
+- All translatable strings live in a `translations` object in `script.js` (English + Arabic).
+- HTML elements use `data-i18n` attributes; JavaScript swaps their text on toggle.
+- Switching to Arabic sets `<html lang="ar" dir="rtl">`, which triggers RTL CSS rules.
+- Dates, numbers, and counters are localized (`toLocaleString` with `en-US` / `ar-EG`).
+- Arabic uses correct pluralization (singular / dual / plural forms).
 
 ---
 
-## 4️⃣ كيف يعمل النظام؟
+## 💾 Data Storage
 
-1. الزائر يسجّل حساب (Sign up) → يحصل على 14 يوم تجربة
-2. يضغط Upgrade → يختار الخطة → يُحوَّل لصفحة **Stripe Checkout** الآمنة
-3. يدفع → Stripe يرسل **Webhook** للخادم → الاشتراك يُفعَّل في قاعدة البيانات
-4. يعود لموقعك → الواجهة تسأل الخادم → تظهر حالة Pro
-5. إذا ألغى الاشتراك → Webhook آخر → الخادم يوقف Pro تلقائياً
+Everything is stored in the browser's `localStorage` — nothing leaves your device:
 
----
+| Key | Contents |
+|-----|----------|
+| `todo_app_tasks` | Your tasks (text, completed state, timestamp) |
+| `todo_app_theme` | Dark or Light mode preference |
+| `todo_app_lang` | Language preference (`en` / `ar`) |
 
-## 5️⃣ بطاقة اختبار Stripe
-
-```
-الرقم:  4242 4242 4242 4242
-التاريخ: أي تاريخ مستقبلي (مثلاً 12/28)
-CVC:    أي 3 أرقام (مثلاً 123)
-```
+To reset the app completely, clear your browser's localStorage for this site.
 
 ---
 
-## ⚠️ ملاحظات أمنية
+## 🌐 Deployment
 
-- **لا ترفع ملف `.env` على GitHub أبداً** — موجود في `.gitignore`
-- **Secret key للخادم فقط** — لا تضعه في `script.js` أبداً
-- `db.json` قاعدة بسيطة للبداية — عند النمو انتقل إلى PostgreSQL
+Hosted free on **GitHub Pages**. To deploy your own copy:
+
+1. Fork or clone this repository
+2. Go to **Settings → Pages**
+3. Under **Branch**, select `main` and click **Save**
+4. Your site goes live at `https://<your-username>.github.io/Todo-App/`
+
+Any push to `main` auto-updates the live site within a minute.
+
+---
+
+## 📄 License
+
+Free and open-source. Use it, modify it, learn from it, share it.
+
+---
+
+## 👤 Author
+
+**souhail555**
+- GitHub: [@souhail555](https://github.com/souhail555)
+- Live App: https://souhail555.github.io/Todo-App/
+
+---
+
+⭐ If you find this project useful, consider giving it a star on GitHub!
