@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
   <main class="app-container">
@@ -52,6 +52,32 @@
           <span data-i18n="addBtn">Add</span>
         </button>
       </form>
+      <!-- Extra options: priority, category, due date -->
+      <div class="task-options">
+        <div class="option-field">
+          <i class="fa-solid fa-flag"></i>
+          <select id="prioritySelect" aria-label="Priority">
+            <option value="high" data-i18n="priorityHigh">High</option>
+            <option value="medium" selected data-i18n="priorityMedium">Medium</option>
+            <option value="low" data-i18n="priorityLow">Low</option>
+          </select>
+        </div>
+        <div class="option-field">
+          <i class="fa-solid fa-tag"></i>
+          <select id="categorySelect" aria-label="Category">
+            <option value="personal" selected data-i18n="catPersonal">Personal</option>
+            <option value="work" data-i18n="catWork">Work</option>
+            <option value="shopping" data-i18n="catShopping">Shopping</option>
+            <option value="health" data-i18n="catHealth">Health</option>
+            <option value="other" data-i18n="catOther">Other</option>
+          </select>
+        </div>
+        <div class="option-field option-date">
+          <i class="fa-regular fa-calendar"></i>
+          <input type="date" id="dueDateInput" aria-label="Due date" />
+        </div>
+      </div>
+      <p class="drag-hint" data-i18n="dragHint">Tip: drag tasks to reorder them</p>
     </section>
 
     <!-- Filter & Statistics -->
@@ -111,6 +137,6 @@
   <!-- Confetti container (celebration when all tasks done) -->
   <div id="confettiContainer" class="confetti-container" aria-hidden="true"></div>
 
-  <script src="script.js?v=4"></script>
+  <script src="script.js?v=5"></script>
 </body>
 </html>

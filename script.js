@@ -43,7 +43,20 @@ const translations = {
     toggleThemeLight: 'Switch to Light Mode',
     langLabel: 'العربية',
     locale: 'en-US',
-    allDone: '🎉 All tasks completed!'
+    allDone: '🎉 All tasks completed!',
+    priorityHigh: 'High',
+    priorityMedium: 'Medium',
+    priorityLow: 'Low',
+    catPersonal: 'Personal',
+    catWork: 'Work',
+    catShopping: 'Shopping',
+    catHealth: 'Health',
+    catOther: 'Other',
+    dueToday: 'Due today',
+    overdue: 'Overdue',
+    dueLabel: 'Due',
+    dragHint: 'Tip: drag tasks to reorder them',
+    dragToReorder: 'Drag to reorder'
   },
   ar: {
     pageTitle: '📋 مدير المهام',
@@ -70,7 +83,20 @@ const translations = {
     toggleThemeLight: 'التبديل إلى الوضع الفاتح',
     langLabel: 'English',
     locale: 'ar-EG',
-    allDone: '🎉 أُنجزت جميع المهام!'
+    allDone: '🎉 أُنجزت جميع المهام!',
+    priorityHigh: 'عالية',
+    priorityMedium: 'متوسطة',
+    priorityLow: 'منخفضة',
+    catPersonal: 'شخصي',
+    catWork: 'عمل',
+    catShopping: 'تسوق',
+    catHealth: 'صحة',
+    catOther: 'أخرى',
+    dueToday: 'مستحقة اليوم',
+    overdue: 'متأخرة',
+    dueLabel: 'الاستحقاق',
+    dragHint: 'نصيحة: اسحب المهام لإعادة ترتيبها',
+    dragToReorder: 'اسحب لإعادة الترتيب'
   }
 };
 
@@ -101,6 +127,23 @@ const progressText = document.getElementById('progressText');
 const progressBar = document.getElementById('progressBar');
 const progressFill = document.getElementById('progressFill');
 const confettiContainer = document.getElementById('confettiContainer');
+const prioritySelect = document.getElementById('prioritySelect');
+const categorySelect = document.getElementById('categorySelect');
+const dueDateInput = document.getElementById('dueDateInput');
+
+// Priority + category metadata (icons & translation keys)
+const PRIORITY_META = {
+  high:   { icon: 'fa-solid fa-flag',        key: 'priorityHigh' },
+  medium: { icon: 'fa-solid fa-flag',        key: 'priorityMedium' },
+  low:    { icon: 'fa-solid fa-flag',        key: 'priorityLow' }
+};
+const CATEGORY_META = {
+  personal: { icon: 'fa-solid fa-user',          key: 'catPersonal' },
+  work:     { icon: 'fa-solid fa-briefcase',     key: 'catWork' },
+  shopping: { icon: 'fa-solid fa-cart-shopping', key: 'catShopping' },
+  health:   { icon: 'fa-solid fa-heart-pulse',   key: 'catHealth' },
+  other:    { icon: 'fa-solid fa-tag',           key: 'catOther' }
+};
 
 // ==================== THEME MANAGEMENT ====================
 function initTheme() {
@@ -184,6 +227,24 @@ function formatDateTime(timestamp) {
   });
 }
 
+// Compare a YYYY-MM-DD due date with today (local time)
+function getDueStatus(dueDate) {
+  if (!dueDate) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate + 'T00:00:00');
+  if (isNaN(due)) return null;
+  if (due < today) return 'overdue';
+  if (due.getTime() === today.getTime()) return 'due-today';
+  return 'upcoming';
+}
+
+function formatDueDate(dueDate) {
+  const d = new Date(dueDate + 'T00:00:00');
+  if (isNaN(d)) return '';
+  return d.toLocaleDateString(t('locale'), { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 // ==================== LOCAL STORAGE ====================
 function saveTasks() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
@@ -265,10 +326,16 @@ function addTask() {
     id: Date.now().toString(),
     text: text,
     completed: false,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    priority: prioritySelect.value || 'medium',
+    category: categorySelect.value || 'personal',
+    dueDate: dueDateInput.value || null
   });
 
   taskInput.value = '';
+  dueDateInput.value = '';
+  prioritySelect.value = 'medium';
+  categorySelect.value = 'personal';
   taskInput.focus();
   saveTasks();
 }
@@ -391,12 +458,46 @@ function renderTasks() {
     const li = document.createElement('li');
     li.className = `task-item ${task.completed ? 'completed' : ''}`;
     li.dataset.id = task.id;
+    li.draggable = true;
 
     const dateTimeHTML = task.createdAt
       ? `<span class="task-datetime"><i class="fa-regular fa-clock"></i> ${formatDateTime(task.createdAt)}</span>`
       : '';
 
+    // Priority badge
+    const priority = PRIORITY_META[task.priority] ? task.priority : null;
+    const priorityHTML = priority
+      ? `<span class="badge badge-priority-${priority}"><i class="${PRIORITY_META[priority].icon}"></i> ${t(PRIORITY_META[priority].key)}</span>`
+      : '';
+
+    // Category badge
+    const category = CATEGORY_META[task.category] ? task.category : null;
+    const categoryHTML = category
+      ? `<span class="badge badge-category"><i class="${CATEGORY_META[category].icon}"></i> ${t(CATEGORY_META[category].key)}</span>`
+      : '';
+
+    // Due date badge (with overdue / due-today states, hidden when completed)
+    let dueHTML = '';
+    if (task.dueDate) {
+      const status = getDueStatus(task.dueDate);
+      let cls = 'badge-due';
+      let label = `${t('dueLabel')}: ${formatDueDate(task.dueDate)}`;
+      if (!task.completed && status === 'overdue') {
+        cls += ' overdue';
+        label = `${t('overdue')} · ${formatDueDate(task.dueDate)}`;
+      } else if (!task.completed && status === 'due-today') {
+        cls += ' due-today';
+        label = t('dueToday');
+      }
+      dueHTML = `<span class="badge ${cls}"><i class="fa-regular fa-calendar"></i> ${label}</span>`;
+    }
+
+    const metaHTML = (priorityHTML || categoryHTML || dueHTML)
+      ? `<div class="task-meta">${priorityHTML}${categoryHTML}${dueHTML}</div>`
+      : '';
+
     li.innerHTML = `
+      <i class="fa-solid fa-grip-vertical drag-handle" title="${t('dragToReorder')}"></i>
       <div class="task-left" role="button" tabindex="0" aria-label="${t('toggleStatus')}">
         <div class="checkbox-custom" aria-hidden="true">
           <i class="fa-solid fa-check"></i>
@@ -404,6 +505,7 @@ function renderTasks() {
         <div class="task-content">
           <span class="task-text">${escapeHTML(task.text)}</span>
           ${dateTimeHTML}
+          ${metaHTML}
         </div>
       </div>
       <div class="task-actions">
@@ -440,6 +542,9 @@ function renderTasks() {
     taskList.appendChild(li);
   });
 
+  // Enable drag & drop reordering
+  initDragAndDrop();
+
   // Counter
   const activeCount = tasks.filter(task => !task.completed).length;
   const totalCount = tasks.length;
@@ -460,6 +565,70 @@ function escapeHTML(str) {
   return str.replace(/[&<>'"]/g,
     tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
   );
+}
+
+// ==================== DRAG & DROP REORDER ====================
+let draggedId = null;
+
+function initDragAndDrop() {
+  const items = taskList.querySelectorAll('.task-item');
+
+  items.forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+      draggedId = item.dataset.id;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', draggedId); } catch {}
+    });
+
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      items.forEach(i => i.classList.remove('drop-target', 'drop-target-bottom'));
+      draggedId = null;
+    });
+
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (item.dataset.id === draggedId) return;
+      e.dataTransfer.dropEffect = 'move';
+
+      // Decide above/below based on cursor position within the item
+      const rect = item.getBoundingClientRect();
+      const isAfter = (e.clientY - rect.top) > rect.height / 2;
+      items.forEach(i => i.classList.remove('drop-target', 'drop-target-bottom'));
+      item.classList.add(isAfter ? 'drop-target-bottom' : 'drop-target');
+    });
+
+    item.addEventListener('dragleave', () => {
+      item.classList.remove('drop-target', 'drop-target-bottom');
+    });
+
+    item.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (!draggedId || item.dataset.id === draggedId) return;
+
+      const rect = item.getBoundingClientRect();
+      const isAfter = (e.clientY - rect.top) > rect.height / 2;
+      reorderTasks(draggedId, item.dataset.id, isAfter);
+    });
+  });
+
+  // Allow dropping at the end of the list
+  taskList.addEventListener('dragover', (e) => e.preventDefault());
+}
+
+// Move draggedId to the position of targetId (before or after)
+function reorderTasks(draggedIdValue, targetId, placeAfter) {
+  const fromIndex = tasks.findIndex(task => task.id === draggedIdValue);
+  const toIndex = tasks.findIndex(task => task.id === targetId);
+  if (fromIndex === -1 || toIndex === -1) return;
+
+  const [moved] = tasks.splice(fromIndex, 1);
+  let insertIndex = tasks.findIndex(task => task.id === targetId);
+  if (placeAfter) insertIndex += 1;
+  tasks.splice(insertIndex, 0, moved);
+
+  saveTasks();
 }
 
 // ==================== EVENT LISTENERS ====================
