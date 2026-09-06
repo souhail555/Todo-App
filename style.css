@@ -198,6 +198,7 @@ html[lang="ar"] body {
   cursor: pointer;
   border: none;
   transition: var(--transition);
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -408,6 +409,7 @@ html[lang="ar"] body {
   color: var(--text-main);
   word-break: break-word;
   transition: var(--transition);
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -507,6 +509,7 @@ html[lang="ar"] body {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -726,6 +729,7 @@ html[lang="ar"] body {
 .app-container.locked .app-footer {
   filter: blur(3px) grayscale(0.4);
   pointer-events: none;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -764,6 +768,7 @@ html[lang="ar"] body {
   display: flex;
   align-items: center;
   gap: 5px;
+  -webkit-user-select: none;
   user-select: none;
 }
 
