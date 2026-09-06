@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modern To-Do List</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-top">
+        <div class="header-title">
+          <i class="fa-solid fa-list-check icon-brand"></i>
+          <h1>Task Manager</h1>
+        </div>
+        <!-- Dark Mode Toggle -->
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
+          <i class="fa-solid fa-moon theme-icon" id="themeIcon"></i>
+        </button>
+      </div>
+      <p class="subtitle" id="currentDate"></p>
+    </header>
+
+    <!-- Task Input Form -->
+    <section class="input-section">
+      <form id="taskForm" class="input-wrapper" onsubmit="return false;">
+        <input
+          type="text"
+          id="taskInput"
+          placeholder="Add a new task..."
+          autocomplete="off"
+          aria-label="New task input"
+        />
+        <button type="submit" id="addBtn" class="btn btn-primary" title="Add Task">
+          <i class="fa-solid fa-plus"></i>
+          <span>Add</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- Filter & Statistics -->
+    <section class="controls-section">
+      <div class="filter-group" role="tablist">
+        <button class="filter-btn active" data-filter="all" role="tab" aria-selected="true">All</button>
+        <button class="filter-btn" data-filter="active" role="tab" aria-selected="false">Active</button>
+        <button class="filter-btn" data-filter="completed" role="tab" aria-selected="false">Completed</button>
+      </div>
+      <div class="task-stats">
+        <span class="task-counter" id="taskCounter">0 tasks left</span>
+        <span class="total-counter" id="totalCounter">(0 total)</span>
+      </div>
+    </section>
+
+    <!-- Task List -->
+    <section class="list-section">
+      <ul id="taskList" class="task-list" aria-label="Task list"></ul>
+      <div id="emptyState" class="empty-state">
+        <i class="fa-regular fa-clipboard"></i>
+        <p id="emptyStateText">No tasks yet. Enjoy your day!</p>
+      </div>
+    </section>
+
+    <!-- Actions Footer -->
+    <footer class="app-footer">
+      <button id="clearCompletedBtn" class="btn btn-outline" title="Clear Completed Tasks">
+        <i class="fa-solid fa-check-double"></i>
+        <span>Clear Completed</span>
+      </button>
+      <button id="clearAllBtn" class="btn btn-danger" title="Clear All Tasks">
+        <i class="fa-solid fa-trash"></i>
+        <span>Clear All</span>
+      </button>
+    </footer>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
