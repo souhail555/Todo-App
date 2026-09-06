@@ -1,28 +1,25 @@
-// State Management & Local Storage Keys
+/* ============================================================
+   Task Manager — script.js
+   Free bilingual (EN/AR) todo app.
+   Features: add/edit/delete/complete, filters, counter,
+   animated progress bar, dark mode, RTL, localStorage,
+   completion sound (Web Audio API) and confetti celebration.
+   ============================================================ */
+
+// ---------------- Storage Keys & State ----------------
 const STORAGE_KEY = 'todo_app_tasks';
 const THEME_KEY = 'todo_app_theme';
 const LANG_KEY = 'todo_app_lang';
-const LICENSE_KEY = 'todo_app_license';
-const TOKEN_KEY = 'todo_app_token';
-
-// Backend API URL — change this to your deployed server URL
-const API_URL = 'http://localhost:3000';
-
-const TRIAL_DAYS = 14;
 
 let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 let currentFilter = 'all';
 let currentLang = 'en';
-let license = JSON.parse(localStorage.getItem(LICENSE_KEY)) || null;
-let authToken = localStorage.getItem(TOKEN_KEY) || null;
-let currentUser = null;
-let authMode = 'signin';
-let selectedPlan = null;
+let celebratedForCount = -1; // which total-count we already celebrated at 100%
 
-// ==================== TRANSLATIONS ====================
+// ---------------- Translations ----------------
 const translations = {
   en: {
-    pageTitle: 'Task Manager',
+    pageTitle: '📋 Task Manager',
     appTitle: 'Task Manager',
     inputPlaceholder: 'Add a new task...',
     addBtn: 'Add',
@@ -38,6 +35,7 @@ const translations = {
     totalCount: (n) => `(${n} total)`,
     progressLabel: (p) => `${p}% completed`,
     confirmClearAll: 'Are you sure you want to delete all tasks?',
+    confirmClearCompleted: 'Clear all completed tasks?',
     editTask: 'Edit task',
     deleteTask: 'Delete task',
     toggleStatus: 'Toggle task status',
@@ -45,43 +43,10 @@ const translations = {
     toggleThemeLight: 'Switch to Light Mode',
     langLabel: 'العربية',
     locale: 'en-US',
-    upgradeBtn: 'Upgrade',
-    trialDaysLeft: (n) => n === 1 ? 'Trial: 1 day left' : `Trial: ${n} days left`,
-    trialLastDay: 'Trial ends today!',
-    trialExpired: 'Your free trial has expired',
-    proBadge: (plan) => plan === 'yearly' ? 'Pro · Yearly' : 'Pro · Monthly',
-    upgradeTitle: 'Upgrade to Pro',
-    upgradeSubtitle: 'Unlock unlimited tasks forever',
-    planMonthly: 'Monthly',
-    planYearly: 'Yearly',
-    perMonth: '/month',
-    perYear: '/year',
-    bestValue: 'Best Value',
-    payNow: 'Pay Now',
-    demoNote: 'Demo only — no real payment is processed',
-    paymentSuccess: 'Welcome to Pro!',
-    proActive: 'Your subscription is now active.',
-    summaryMonthly: 'Pro Monthly — $3/month',
-    summaryYearly: 'Pro Yearly — $25/year',
-    cardInvalid: 'Please fill in all card fields',
-    signIn: 'Sign in',
-    signUp: 'Sign up',
-    logout: 'Sign out',
-    authTitleSignIn: 'Sign in',
-    authTitleSignUp: 'Create account',
-    authSubtitle: 'Sync your subscription across devices',
-    authSwitchToSignUp: 'Need an account? Sign up',
-    authSwitchToSignIn: 'Have an account? Sign in',
-    secureNote: 'Secure payment powered by Stripe',
-    loginToPay: 'Please sign in first to subscribe',
-    serverError: 'Server connection failed',
-    paymentSuccessMsg: 'Payment successful! Your Pro subscription is now active.',
-    paymentCancelledMsg: 'Payment cancelled.',
-    emailPlaceholder: 'Email',
-    passwordPlaceholder: 'Password'
+    allDone: '🎉 All tasks completed!'
   },
   ar: {
-    pageTitle: 'مدير المهام',
+    pageTitle: '📋 مدير المهام',
     appTitle: 'مدير المهام',
     inputPlaceholder: 'أضف مهمة جديدة...',
     addBtn: 'إضافة',
@@ -97,6 +62,7 @@ const translations = {
     totalCount: (n) => `(${n} إجمالي)`,
     progressLabel: (p) => `${p}٪ مكتمل`,
     confirmClearAll: 'هل أنت متأكد أنك تريد حذف جميع المهام؟',
+    confirmClearCompleted: 'هل تريد مسح جميع المهام المكتملة؟',
     editTask: 'تعديل المهمة',
     deleteTask: 'حذف المهمة',
     toggleStatus: 'تبديل حالة المهمة',
@@ -104,53 +70,22 @@ const translations = {
     toggleThemeLight: 'التبديل إلى الوضع الفاتح',
     langLabel: 'English',
     locale: 'ar-EG',
-    upgradeBtn: 'الترقية',
-    trialDaysLeft: (n) => n === 1 ? 'التجربة: يوم واحد متبقٍ' : n === 2 ? 'التجربة: يومان متبقيان' : n <= 10 ? `التجربة: ${n} أيام متبقية` : `التجربة: ${n} يوماً متبقياً`,
-    trialLastDay: 'التجربة تنتهي اليوم!',
-    trialExpired: 'انتهت فترة التجربة المجانية',
-    proBadge: (plan) => plan === 'yearly' ? 'برو · سنوي' : 'برو · شهري',
-    upgradeTitle: 'الترقية إلى برو',
-    upgradeSubtitle: 'مهام غير محدودة للأبد',
-    planMonthly: 'شهري',
-    planYearly: 'سنوي',
-    perMonth: '/شهر',
-    perYear: '/سنة',
-    bestValue: 'الأفضل قيمة',
-    payNow: 'ادفع الآن',
-    demoNote: 'عرض تجريبي فقط — لا يتم معالجة أي دفع حقيقي',
-    paymentSuccess: 'مرحباً بك في برو!',
-    proActive: 'اشتراكك الآن نشط.',
-    summaryMonthly: 'برو شهري — 3$/شهر',
-    summaryYearly: 'برو سنوي — 25$/سنة',
-    cardInvalid: 'يرجى ملء جميع حقول البطاقة',
-    signIn: 'تسجيل الدخول',
-    signUp: 'إنشاء حساب',
-    logout: 'تسجيل الخروج',
-    authTitleSignIn: 'تسجيل الدخول',
-    authTitleSignUp: 'إنشاء حساب جديد',
-    authSubtitle: 'زامن اشتراكك عبر أجهزتك',
-    authSwitchToSignUp: 'ليس لديك حساب؟ أنشئ حساباً',
-    authSwitchToSignIn: 'لديك حساب؟ سجّل الدخول',
-    secureNote: 'دفع آمن عبر Stripe',
-    loginToPay: 'يرجى تسجيل الدخول أولاً للاشتراك',
-    serverError: 'فشل الاتصال بالخادم',
-    paymentSuccessMsg: 'تم الدفع بنجاح! اشتراكك برو نشط الآن.',
-    paymentCancelledMsg: 'تم إلغاء الدفع.',
-    emailPlaceholder: 'البريد الإلكتروني',
-    passwordPlaceholder: 'كلمة المرور'
+    allDone: '🎉 أُنجزت جميع المهام!'
   }
 };
 
-// Translate helper
+// Translate helper — supports function values (pluralization)
 function t(key, ...args) {
   const entry = translations[currentLang][key];
   return typeof entry === 'function' ? entry(...args) : entry;
 }
 
-// DOM Elements
+// ---------------- DOM Elements ----------------
 const htmlRoot = document.documentElement;
 const themeToggleBtn = document.getElementById('themeToggleBtn');
 const themeIcon = document.getElementById('themeIcon');
+const langToggleBtn = document.getElementById('langToggleBtn');
+const langLabel = document.getElementById('langLabel');
 const taskForm = document.getElementById('taskForm');
 const taskInput = document.getElementById('taskInput');
 const taskList = document.getElementById('taskList');
@@ -165,221 +100,34 @@ const currentDateEl = document.getElementById('currentDate');
 const progressText = document.getElementById('progressText');
 const progressBar = document.getElementById('progressBar');
 const progressFill = document.getElementById('progressFill');
-const langToggleBtn = document.getElementById('langToggleBtn');
-const langLabel = document.getElementById('langLabel');
+const confettiContainer = document.getElementById('confettiContainer');
 
-// License / Subscription DOM Elements
-const trialBanner = document.getElementById('trialBanner');
-const trialText = document.getElementById('trialText');
-const upgradeBtn = document.getElementById('upgradeBtn');
-const upgradeModal = document.getElementById('upgradeModal');
-const closeModalBtn = document.getElementById('closeModalBtn');
-const plansStep = document.getElementById('plansStep');
-const planCards = document.querySelectorAll('.plan-card');
-const checkoutStep = document.getElementById('checkoutStep');
-const checkoutSummary = document.getElementById('checkoutSummary');
-const payBtn = document.getElementById('payBtn');
-const appContainer = document.querySelector('.app-container');
-
-// Auth DOM Elements
-const accountBtn = document.getElementById('accountBtn');
-const accountLabel = document.getElementById('accountLabel');
-const authModal = document.getElementById('authModal');
-const closeAuthBtn = document.getElementById('closeAuthBtn');
-const authForm = document.getElementById('authForm');
-const authEmail = document.getElementById('authEmail');
-const authPassword = document.getElementById('authPassword');
-const authError = document.getElementById('authError');
-const authTitle = document.getElementById('authTitle');
-const authSubmitLabel = document.getElementById('authSubmitLabel');
-const authSwitchBtn = document.getElementById('authSwitchBtn');
-const authSwitchLabel = document.getElementById('authSwitchLabel');
-const logoutBtn = document.getElementById('logoutBtn');
-
-// ==================== AUTH ====================
-async function api(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json' };
-  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-  const res = await fetch(API_URL + path, { ...options, headers });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || t('serverError'));
-  return data;
-}
-
-function updateAccountUI() {
-  if (currentUser) {
-    accountLabel.textContent = currentUser.email.split('@')[0];
-    authForm.hidden = true;
-    logoutBtn.hidden = false;
-    authTitle.textContent = currentUser.email;
+// ==================== THEME MANAGEMENT ====================
+function initTheme() {
+  const savedTheme = localStorage.getItem(THEME_KEY);
+  if (savedTheme) {
+    setTheme(savedTheme);
   } else {
-    accountLabel.textContent = t('signIn');
-    authForm.hidden = false;
-    logoutBtn.hidden = true;
-    setAuthMode('signin');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setTheme(prefersDark ? 'dark' : 'light');
   }
 }
 
-function setAuthMode(mode) {
-  authMode = mode;
-  const isSignIn = mode === 'signin';
-  authTitle.textContent = isSignIn ? t('authTitleSignIn') : t('authTitleSignUp');
-  authSubmitLabel.textContent = isSignIn ? t('authTitleSignIn') : t('authTitleSignUp');
-  authSwitchLabel.textContent = isSignIn ? t('authSwitchToSignUp') : t('authSwitchToSignIn');
-  authError.hidden = true;
-}
-
-async function handleAuthSubmit(e) {
-  e.preventDefault();
-  authError.hidden = true;
-  try {
-    const data = await api(authMode === 'signin' ? '/api/login' : '/api/signup', {
-      method: 'POST',
-      body: JSON.stringify({ email: authEmail.value.trim(), password: authPassword.value })
-    });
-    authToken = data.token;
-    localStorage.setItem(TOKEN_KEY, authToken);
-    currentUser = data.user;
-    authModal.hidden = true;
-    authForm.reset();
-    updateAccountUI();
-    syncLicenseFromServer();
-  } catch (err) {
-    authError.textContent = err.message;
-    authError.hidden = false;
-  }
-}
-
-function handleLogout() {
-  authToken = null;
-  currentUser = null;
-  localStorage.removeItem(TOKEN_KEY);
-  updateAccountUI();
-  authModal.hidden = true;
-}
-
-async function syncLicenseFromServer() {
-  if (!authToken) return;
-  try {
-    const data = await api('/api/me');
-    currentUser = data.user;
-    if (currentUser.isPro) {
-      license.isPro = true;
-      license.plan = currentUser.plan;
-      saveLicense();
-    }
-    updateAccountUI();
-    updateLicenseUI();
-  } catch {
-    // Token expired or server offline — stay logged out locally
-    handleLogout();
-  }
-}
-
-// ==================== LICENSE / SUBSCRIPTION ====================
-function initLicense() {
-  if (!license) {
-    license = { trialStart: Date.now(), isPro: false, plan: null };
-    saveLicense();
-  }
-  updateLicenseUI();
-}
-
-function saveLicense() {
-  localStorage.setItem(LICENSE_KEY, JSON.stringify(license));
-}
-
-function trialDaysRemaining() {
-  const elapsed = Date.now() - license.trialStart;
-  const daysLeft = TRIAL_DAYS - Math.floor(elapsed / (24 * 60 * 60 * 1000));
-  return daysLeft;
-}
-
-function isTrialExpired() {
-  return !license.isPro && trialDaysRemaining() <= 0;
-}
-
-function updateLicenseUI() {
-  trialBanner.classList.remove('expired', 'pro');
-
-  if (license.isPro) {
-    trialBanner.classList.add('pro');
-    trialText.textContent = t('proBadge', license.plan);
-    upgradeBtn.hidden = true;
-    appContainer.classList.remove('locked');
-    return;
-  }
-
-  upgradeBtn.hidden = false;
-  const daysLeft = trialDaysRemaining();
-
-  if (daysLeft <= 0) {
-    trialBanner.classList.add('expired');
-    trialText.textContent = t('trialExpired');
-    appContainer.classList.add('locked');
-    openUpgradeModal();
+function setTheme(theme) {
+  htmlRoot.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_KEY, theme);
+  if (theme === 'dark') {
+    themeIcon.className = 'fa-solid fa-sun theme-icon';
+    themeToggleBtn.title = t('toggleThemeLight');
   } else {
-    trialText.textContent = daysLeft === 0 ? t('trialLastDay') : t('trialDaysLeft', daysLeft);
-    appContainer.classList.remove('locked');
+    themeIcon.className = 'fa-solid fa-moon theme-icon';
+    themeToggleBtn.title = t('toggleThemeDark');
   }
 }
 
-function openUpgradeModal() {
-  upgradeModal.hidden = false;
-  plansStep.hidden = false;
-  checkoutStep.hidden = true;
-  // Only allow closing if not locked
-  closeModalBtn.hidden = isTrialExpired();
-}
-
-function closeUpgradeModal() {
-  if (isTrialExpired()) return; // force upgrade when expired
-  upgradeModal.hidden = true;
-}
-
-function selectPlan(plan) {
-  selectedPlan = plan;
-  checkoutSummary.textContent = plan === 'yearly' ? t('summaryYearly') : t('summaryMonthly');
-  plansStep.hidden = true;
-  checkoutStep.hidden = false;
-}
-
-// Redirect to real Stripe Checkout
-async function processPayment() {
-  if (!currentUser) {
-    alert(t('loginToPay'));
-    upgradeModal.hidden = true;
-    authModal.hidden = false;
-    return;
-  }
-
-  payBtn.disabled = true;
-  try {
-    const data = await api('/api/create-checkout', {
-      method: 'POST',
-      body: JSON.stringify({ plan: selectedPlan })
-    });
-    window.location.href = data.url; // Redirect to Stripe-hosted payment page
-  } catch (err) {
-    alert(err.message);
-    payBtn.disabled = false;
-  }
-}
-
-// Handle redirect back from Stripe (?payment=success / ?payment=cancelled)
-function handlePaymentReturn() {
-  const params = new URLSearchParams(window.location.search);
-  const payment = params.get('payment');
-  if (!payment) return;
-
-  window.history.replaceState({}, '', window.location.pathname);
-
-  if (payment === 'success') {
-    alert(t('paymentSuccessMsg'));
-    syncLicenseFromServer();
-  } else if (payment === 'cancelled') {
-    alert(t('paymentCancelledMsg'));
-  }
+function toggleTheme() {
+  const currentTheme = htmlRoot.getAttribute('data-theme') || 'light';
+  setTheme(currentTheme === 'dark' ? 'light' : 'dark');
 }
 
 // ==================== LANGUAGE MANAGEMENT ====================
@@ -392,11 +140,10 @@ function setLanguage(lang) {
   currentLang = lang;
   localStorage.setItem(LANG_KEY, lang);
 
-  // Update html attributes for lang + direction
   htmlRoot.setAttribute('lang', lang);
   htmlRoot.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
 
-  // Static elements via data-i18n attributes
+  // Static texts
   document.querySelectorAll('[data-i18n]').forEach(el => {
     el.textContent = t(el.dataset.i18n);
   });
@@ -404,73 +151,37 @@ function setLanguage(lang) {
     el.placeholder = t(el.dataset.i18nPlaceholder);
   });
 
-  // Language toggle button shows the OTHER language name
+  // The toggle shows the OTHER language name
   langLabel.textContent = t('langLabel');
 
-  // Update theme button title in current language
-  updateThemeButtonTitle();
+  // Theme button title in current language
+  const currentTheme = htmlRoot.getAttribute('data-theme') || 'light';
+  themeToggleBtn.title = currentTheme === 'dark' ? t('toggleThemeLight') : t('toggleThemeDark');
 
-  // Re-render dynamic content (dates, counters, tasks, license) in new language
+  // Re-render dynamic content in the new language
   displayDate();
   renderTasks();
-  if (license) updateLicenseUI();
 }
 
 function toggleLanguage() {
   setLanguage(currentLang === 'en' ? 'ar' : 'en');
 }
 
-function updateThemeButtonTitle() {
-  const currentTheme = htmlRoot.getAttribute('data-theme') || 'light';
-  themeToggleBtn.title = currentTheme === 'dark' ? t('toggleThemeLight') : t('toggleThemeDark');
+// ==================== DATE & TIME ====================
+function displayDate() {
+  const options = { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' };
+  currentDateEl.textContent = new Date().toLocaleDateString(t('locale'), options);
 }
 
-// ==================== THEME MANAGEMENT ====================
-function initTheme() {
-  const savedTheme = localStorage.getItem(THEME_KEY);
-  if (savedTheme) {
-    setTheme(savedTheme);
-  } else {
-    // Check system preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setTheme(prefersDark ? 'dark' : 'light');
-  }
-}
-
-function setTheme(theme) {
-  htmlRoot.setAttribute('data-theme', theme);
-  localStorage.setItem(THEME_KEY, theme);
-  if (theme === 'dark') {
-    themeIcon.className = 'fa-solid fa-sun theme-icon';
-  } else {
-    themeIcon.className = 'fa-solid fa-moon theme-icon';
-  }
-  updateThemeButtonTitle();
-}
-
-function toggleTheme() {
-  const currentTheme = htmlRoot.getAttribute('data-theme') || 'light';
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  setTheme(newTheme);
-}
-
-// Format a task timestamp in the current language's locale
 function formatDateTime(timestamp) {
   if (!timestamp) return '';
   return new Date(timestamp).toLocaleString(t('locale'), {
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
     hour12: true
   });
-}
-
-// ==================== DATE DISPLAY ====================
-function displayDate() {
-  const options = { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' };
-  currentDateEl.textContent = new Date().toLocaleDateString(t('locale'), options);
 }
 
 // ==================== LOCAL STORAGE ====================
@@ -479,51 +190,131 @@ function saveTasks() {
   renderTasks();
 }
 
+// ==================== SOUND (Web Audio API) ====================
+let audioCtx = null;
+
+function playCompleteSound() {
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const now = audioCtx.currentTime;
+
+    // Pleasant two-note "ding"
+    [523.25, 783.99].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, now + i * 0.09);
+      gain.gain.exponentialRampToValueAtTime(0.18, now + i * 0.09 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.09 + 0.45);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(now + i * 0.09);
+      osc.stop(now + i * 0.09 + 0.5);
+    });
+  } catch {
+    // Audio not available — fail silently
+  }
+}
+
+// ==================== CONFETTI CELEBRATION ====================
+function celebrate() {
+  const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f472b6'];
+  const pieces = 90;
+
+  for (let i = 0; i < pieces; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + 'vw';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDuration = 2.2 + Math.random() * 1.6 + 's';
+    piece.style.animationDelay = Math.random() * 0.4 + 's';
+    piece.style.width = 6 + Math.random() * 8 + 'px';
+    piece.style.height = 10 + Math.random() * 10 + 'px';
+    piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+    confettiContainer.appendChild(piece);
+
+    piece.addEventListener('animationend', () => piece.remove());
+  }
+
+  // Safety cleanup
+  setTimeout(() => { confettiContainer.innerHTML = ''; }, 5000);
+}
+
+function maybeCelebrate() {
+  const total = tasks.length;
+  const allDone = total > 0 && tasks.every(task => task.completed);
+
+  if (allDone && celebratedForCount !== total) {
+    celebratedForCount = total;
+    celebrate();
+  }
+  // Reset celebration when the set is no longer complete
+  if (!allDone) celebratedForCount = -1;
+}
+
 // ==================== TASK OPERATIONS ====================
 function addTask() {
   const text = taskInput.value.trim();
   if (!text) return;
 
-  const newTask = {
+  tasks.unshift({
     id: Date.now().toString(),
     text: text,
     completed: false,
     createdAt: Date.now()
-  };
+  });
 
-  tasks.unshift(newTask);
   taskInput.value = '';
+  taskInput.focus();
   saveTasks();
 }
 
 function toggleTask(id) {
+  let justCompleted = false;
   tasks = tasks.map(task => {
     if (task.id === id) {
+      if (!task.completed) justCompleted = true;
       return { ...task, completed: !task.completed };
     }
     return task;
   });
+
+  if (justCompleted) playCompleteSound();
   saveTasks();
+  maybeCelebrate();
 }
 
 function deleteTask(id) {
-  tasks = tasks.filter(task => task.id !== id);
-  saveTasks();
+  const li = taskList.querySelector(`[data-id="${id}"]`);
+  if (li) {
+    li.classList.add('removing');
+    setTimeout(() => {
+      tasks = tasks.filter(task => task.id !== id);
+      saveTasks();
+    }, 220);
+  } else {
+    tasks = tasks.filter(task => task.id !== id);
+    saveTasks();
+  }
 }
 
 function startEditTask(id, taskElement) {
-  const task = tasks.find(t => t.id === id);
+  const task = tasks.find(taskItem => taskItem.id === id);
   if (!task) return;
 
   const textSpan = taskElement.querySelector('.task-text');
+  if (!textSpan) return;
   const originalText = task.text;
 
-  // Replace text with inline input
   const editInput = document.createElement('input');
   editInput.type = 'text';
   editInput.className = 'task-edit-input';
   editInput.value = originalText;
-  editInput.setAttribute('aria-label', 'Edit task text');
+  editInput.setAttribute('aria-label', t('editTask'));
 
   textSpan.replaceWith(editInput);
   editInput.focus();
@@ -564,10 +355,11 @@ function clearAll() {
 }
 
 function clearCompleted() {
-  const hasCompleted = tasks.some(task => task.completed);
-  if (!hasCompleted) return;
-  tasks = tasks.filter(task => !task.completed);
-  saveTasks();
+  if (!tasks.some(task => task.completed)) return;
+  if (confirm(t('confirmClearCompleted'))) {
+    tasks = tasks.filter(task => !task.completed);
+    saveTasks();
+  }
 }
 
 // ==================== RENDERING ====================
@@ -580,21 +372,21 @@ function renderTasks() {
     return true;
   });
 
-  // Empty state handling
+  // Empty state
   if (filteredTasks.length === 0) {
     emptyState.style.display = 'flex';
     if (tasks.length === 0) {
       emptyStateText.textContent = t('emptyNoTasks');
     } else if (currentFilter === 'active') {
       emptyStateText.textContent = t('emptyNoActive');
-    } else if (currentFilter === 'completed') {
+    } else {
       emptyStateText.textContent = t('emptyNoCompleted');
     }
   } else {
     emptyState.style.display = 'none';
   }
 
-  // Render individual task items
+  // Render tasks
   filteredTasks.forEach(task => {
     const li = document.createElement('li');
     li.className = `task-item ${task.completed ? 'completed' : ''}`;
@@ -624,14 +416,10 @@ function renderTasks() {
       </div>
     `;
 
-    // Click or Enter/Space on task item to toggle completed
     const taskLeft = li.querySelector('.task-left');
     taskLeft.addEventListener('click', (e) => {
-      if (e.target.tagName !== 'INPUT') {
-        toggleTask(task.id);
-      }
+      if (e.target.tagName !== 'INPUT') toggleTask(task.id);
     });
-
     taskLeft.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
@@ -639,16 +427,12 @@ function renderTasks() {
       }
     });
 
-    // Edit button
-    const editBtn = li.querySelector('.edit-btn');
-    editBtn.addEventListener('click', (e) => {
+    li.querySelector('.edit-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       startEditTask(task.id, li);
     });
 
-    // Delete button
-    const deleteBtn = li.querySelector('.delete-btn');
-    deleteBtn.addEventListener('click', (e) => {
+    li.querySelector('.delete-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       deleteTask(task.id);
     });
@@ -656,23 +440,24 @@ function renderTasks() {
     taskList.appendChild(li);
   });
 
-  // Update Task Counters
-  const activeCount = tasks.filter(t => !t.completed).length;
+  // Counter
+  const activeCount = tasks.filter(task => !task.completed).length;
   const totalCount = tasks.length;
   taskCounter.textContent = t('tasksLeft', activeCount);
   totalCounter.textContent = t('totalCount', totalCount);
 
-  // Update Progress Bar
+  // Progress bar
   const completedCount = totalCount - activeCount;
   const percent = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
   progressText.textContent = t('progressLabel', percent);
   progressFill.style.width = `${percent}%`;
   progressBar.setAttribute('aria-valuenow', percent);
+  progressBar.classList.toggle('full', percent === 100);
 }
 
-// Prevent XSS
+// Prevent XSS — user task text is always escaped
 function escapeHTML(str) {
-  return str.replace(/[&<>'"]/g, 
+  return str.replace(/[&<>'"]/g,
     tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
   );
 }
@@ -702,35 +487,6 @@ filterBtns.forEach(btn => {
 clearAllBtn.addEventListener('click', clearAll);
 clearCompletedBtn.addEventListener('click', clearCompleted);
 
-// License / Subscription events
-upgradeBtn.addEventListener('click', openUpgradeModal);
-closeModalBtn.addEventListener('click', closeUpgradeModal);
-upgradeModal.addEventListener('click', (e) => {
-  if (e.target === upgradeModal) closeUpgradeModal();
-});
-planCards.forEach(card => {
-  card.addEventListener('click', () => selectPlan(card.dataset.plan));
-});
-payBtn.addEventListener('click', processPayment);
-
-// Auth events
-accountBtn.addEventListener('click', () => {
-  updateAccountUI();
-  authModal.hidden = false;
-});
-closeAuthBtn.addEventListener('click', () => { authModal.hidden = true; });
-authModal.addEventListener('click', (e) => {
-  if (e.target === authModal) authModal.hidden = true;
-});
-authForm.addEventListener('submit', handleAuthSubmit);
-authSwitchBtn.addEventListener('click', () => {
-  setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
-});
-logoutBtn.addEventListener('click', handleLogout);
-
 // ==================== INITIALIZATION ====================
 initTheme();
 initLanguage();
-initLicense();
-handlePaymentReturn();
-if (authToken) syncLicenseFromServer();
