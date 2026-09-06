@@ -697,6 +697,20 @@ html[lang="ar"] body {
   color: var(--text-muted);
 }
 
+.auth-error {
+  background: var(--danger-light);
+  color: var(--danger);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.auth-error[hidden] {
+  display: none;
+}
+
 /* Payment Success */
 .payment-success {
   text-align: center;

@@ -3,6 +3,10 @@ const STORAGE_KEY = 'todo_app_tasks';
 const THEME_KEY = 'todo_app_theme';
 const LANG_KEY = 'todo_app_lang';
 const LICENSE_KEY = 'todo_app_license';
+const TOKEN_KEY = 'todo_app_token';
+
+// Backend API URL — change this to your deployed server URL
+const API_URL = 'http://localhost:3000';
 
 const TRIAL_DAYS = 14;
 
@@ -10,6 +14,10 @@ let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 let currentFilter = 'all';
 let currentLang = 'en';
 let license = JSON.parse(localStorage.getItem(LICENSE_KEY)) || null;
+let authToken = localStorage.getItem(TOKEN_KEY) || null;
+let currentUser = null;
+let authMode = 'signin';
+let selectedPlan = null;
 
 // ==================== TRANSLATIONS ====================
 const translations = {
@@ -55,7 +63,22 @@ const translations = {
     proActive: 'Your subscription is now active.',
     summaryMonthly: 'Pro Monthly — $3/month',
     summaryYearly: 'Pro Yearly — $25/year',
-    cardInvalid: 'Please fill in all card fields'
+    cardInvalid: 'Please fill in all card fields',
+    signIn: 'Sign in',
+    signUp: 'Sign up',
+    logout: 'Sign out',
+    authTitleSignIn: 'Sign in',
+    authTitleSignUp: 'Create account',
+    authSubtitle: 'Sync your subscription across devices',
+    authSwitchToSignUp: 'Need an account? Sign up',
+    authSwitchToSignIn: 'Have an account? Sign in',
+    secureNote: 'Secure payment powered by Stripe',
+    loginToPay: 'Please sign in first to subscribe',
+    serverError: 'Server connection failed',
+    paymentSuccessMsg: 'Payment successful! Your Pro subscription is now active.',
+    paymentCancelledMsg: 'Payment cancelled.',
+    emailPlaceholder: 'Email',
+    passwordPlaceholder: 'Password'
   },
   ar: {
     pageTitle: 'مدير المهام',
@@ -99,7 +122,22 @@ const translations = {
     proActive: 'اشتراكك الآن نشط.',
     summaryMonthly: 'برو شهري — 3$/شهر',
     summaryYearly: 'برو سنوي — 25$/سنة',
-    cardInvalid: 'يرجى ملء جميع حقول البطاقة'
+    cardInvalid: 'يرجى ملء جميع حقول البطاقة',
+    signIn: 'تسجيل الدخول',
+    signUp: 'إنشاء حساب',
+    logout: 'تسجيل الخروج',
+    authTitleSignIn: 'تسجيل الدخول',
+    authTitleSignUp: 'إنشاء حساب جديد',
+    authSubtitle: 'زامن اشتراكك عبر أجهزتك',
+    authSwitchToSignUp: 'ليس لديك حساب؟ أنشئ حساباً',
+    authSwitchToSignIn: 'لديك حساب؟ سجّل الدخول',
+    secureNote: 'دفع آمن عبر Stripe',
+    loginToPay: 'يرجى تسجيل الدخول أولاً للاشتراك',
+    serverError: 'فشل الاتصال بالخادم',
+    paymentSuccessMsg: 'تم الدفع بنجاح! اشتراكك برو نشط الآن.',
+    paymentCancelledMsg: 'تم إلغاء الدفع.',
+    emailPlaceholder: 'البريد الإلكتروني',
+    passwordPlaceholder: 'كلمة المرور'
   }
 };
 
@@ -138,10 +176,105 @@ const upgradeModal = document.getElementById('upgradeModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const plansStep = document.getElementById('plansStep');
 const planCards = document.querySelectorAll('.plan-card');
-const checkoutForm = document.getElementById('checkoutForm');
+const checkoutStep = document.getElementById('checkoutStep');
 const checkoutSummary = document.getElementById('checkoutSummary');
-const paymentSuccess = document.getElementById('paymentSuccess');
+const payBtn = document.getElementById('payBtn');
 const appContainer = document.querySelector('.app-container');
+
+// Auth DOM Elements
+const accountBtn = document.getElementById('accountBtn');
+const accountLabel = document.getElementById('accountLabel');
+const authModal = document.getElementById('authModal');
+const closeAuthBtn = document.getElementById('closeAuthBtn');
+const authForm = document.getElementById('authForm');
+const authEmail = document.getElementById('authEmail');
+const authPassword = document.getElementById('authPassword');
+const authError = document.getElementById('authError');
+const authTitle = document.getElementById('authTitle');
+const authSubmitLabel = document.getElementById('authSubmitLabel');
+const authSwitchBtn = document.getElementById('authSwitchBtn');
+const authSwitchLabel = document.getElementById('authSwitchLabel');
+const logoutBtn = document.getElementById('logoutBtn');
+
+// ==================== AUTH ====================
+async function api(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  const res = await fetch(API_URL + path, { ...options, headers });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || t('serverError'));
+  return data;
+}
+
+function updateAccountUI() {
+  if (currentUser) {
+    accountLabel.textContent = currentUser.email.split('@')[0];
+    authForm.hidden = true;
+    logoutBtn.hidden = false;
+    authTitle.textContent = currentUser.email;
+  } else {
+    accountLabel.textContent = t('signIn');
+    authForm.hidden = false;
+    logoutBtn.hidden = true;
+    setAuthMode('signin');
+  }
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const isSignIn = mode === 'signin';
+  authTitle.textContent = isSignIn ? t('authTitleSignIn') : t('authTitleSignUp');
+  authSubmitLabel.textContent = isSignIn ? t('authTitleSignIn') : t('authTitleSignUp');
+  authSwitchLabel.textContent = isSignIn ? t('authSwitchToSignUp') : t('authSwitchToSignIn');
+  authError.hidden = true;
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  authError.hidden = true;
+  try {
+    const data = await api(authMode === 'signin' ? '/api/login' : '/api/signup', {
+      method: 'POST',
+      body: JSON.stringify({ email: authEmail.value.trim(), password: authPassword.value })
+    });
+    authToken = data.token;
+    localStorage.setItem(TOKEN_KEY, authToken);
+    currentUser = data.user;
+    authModal.hidden = true;
+    authForm.reset();
+    updateAccountUI();
+    syncLicenseFromServer();
+  } catch (err) {
+    authError.textContent = err.message;
+    authError.hidden = false;
+  }
+}
+
+function handleLogout() {
+  authToken = null;
+  currentUser = null;
+  localStorage.removeItem(TOKEN_KEY);
+  updateAccountUI();
+  authModal.hidden = true;
+}
+
+async function syncLicenseFromServer() {
+  if (!authToken) return;
+  try {
+    const data = await api('/api/me');
+    currentUser = data.user;
+    if (currentUser.isPro) {
+      license.isPro = true;
+      license.plan = currentUser.plan;
+      saveLicense();
+    }
+    updateAccountUI();
+    updateLicenseUI();
+  } catch {
+    // Token expired or server offline — stay logged out locally
+    handleLogout();
+  }
+}
 
 // ==================== LICENSE / SUBSCRIPTION ====================
 function initLicense() {
@@ -194,8 +327,7 @@ function updateLicenseUI() {
 function openUpgradeModal() {
   upgradeModal.hidden = false;
   plansStep.hidden = false;
-  checkoutForm.hidden = true;
-  paymentSuccess.hidden = true;
+  checkoutStep.hidden = true;
   // Only allow closing if not locked
   closeModalBtn.hidden = isTrialExpired();
 }
@@ -206,37 +338,48 @@ function closeUpgradeModal() {
 }
 
 function selectPlan(plan) {
+  selectedPlan = plan;
   checkoutSummary.textContent = plan === 'yearly' ? t('summaryYearly') : t('summaryMonthly');
-  checkoutForm.dataset.plan = plan;
   plansStep.hidden = true;
-  checkoutForm.hidden = false;
+  checkoutStep.hidden = false;
 }
 
-function processPayment(e) {
-  e.preventDefault();
-  const name = document.getElementById('cardName').value.trim();
-  const number = document.getElementById('cardNumber').value.replace(/\s/g, '');
-  const expiry = document.getElementById('cardExpiry').value.trim();
-  const cvc = document.getElementById('cardCvc').value.trim();
-
-  if (!name || number.length < 12 || !expiry || cvc.length < 3) {
-    alert(t('cardInvalid'));
+// Redirect to real Stripe Checkout
+async function processPayment() {
+  if (!currentUser) {
+    alert(t('loginToPay'));
+    upgradeModal.hidden = true;
+    authModal.hidden = false;
     return;
   }
 
-  // Fake payment — demo only
-  license.isPro = true;
-  license.plan = checkoutForm.dataset.plan;
-  saveLicense();
+  payBtn.disabled = true;
+  try {
+    const data = await api('/api/create-checkout', {
+      method: 'POST',
+      body: JSON.stringify({ plan: selectedPlan })
+    });
+    window.location.href = data.url; // Redirect to Stripe-hosted payment page
+  } catch (err) {
+    alert(err.message);
+    payBtn.disabled = false;
+  }
+}
 
-  checkoutForm.hidden = true;
-  paymentSuccess.hidden = false;
-  updateLicenseUI();
+// Handle redirect back from Stripe (?payment=success / ?payment=cancelled)
+function handlePaymentReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const payment = params.get('payment');
+  if (!payment) return;
 
-  setTimeout(() => {
-    upgradeModal.hidden = true;
-    checkoutForm.reset();
-  }, 2200);
+  window.history.replaceState({}, '', window.location.pathname);
+
+  if (payment === 'success') {
+    alert(t('paymentSuccessMsg'));
+    syncLicenseFromServer();
+  } else if (payment === 'cancelled') {
+    alert(t('paymentCancelledMsg'));
+  }
 }
 
 // ==================== LANGUAGE MANAGEMENT ====================
@@ -568,22 +711,26 @@ upgradeModal.addEventListener('click', (e) => {
 planCards.forEach(card => {
   card.addEventListener('click', () => selectPlan(card.dataset.plan));
 });
-checkoutForm.addEventListener('submit', processPayment);
+payBtn.addEventListener('click', processPayment);
 
-// Card number formatting (groups of 4)
-document.getElementById('cardNumber').addEventListener('input', (e) => {
-  const digits = e.target.value.replace(/\D/g, '').slice(0, 16);
-  e.target.value = digits.replace(/(\d{4})(?=\d)/g, '$1 ');
+// Auth events
+accountBtn.addEventListener('click', () => {
+  updateAccountUI();
+  authModal.hidden = false;
 });
-document.getElementById('cardExpiry').addEventListener('input', (e) => {
-  const digits = e.target.value.replace(/\D/g, '').slice(0, 4);
-  e.target.value = digits.length > 2 ? digits.slice(0, 2) + '/' + digits.slice(2) : digits;
+closeAuthBtn.addEventListener('click', () => { authModal.hidden = true; });
+authModal.addEventListener('click', (e) => {
+  if (e.target === authModal) authModal.hidden = true;
 });
-document.getElementById('cardCvc').addEventListener('input', (e) => {
-  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+authForm.addEventListener('submit', handleAuthSubmit);
+authSwitchBtn.addEventListener('click', () => {
+  setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
 });
+logoutBtn.addEventListener('click', handleLogout);
 
 // ==================== INITIALIZATION ====================
 initTheme();
 initLanguage();
 initLicense();
+handlePaymentReturn();
+if (authToken) syncLicenseFromServer();

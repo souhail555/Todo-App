@@ -22,6 +22,11 @@
           <h1 data-i18n="appTitle">Task Manager</h1>
         </div>
         <div class="header-actions">
+          <!-- Account Button -->
+          <button id="accountBtn" class="lang-toggle-btn" title="Account" aria-label="Account">
+            <i class="fa-solid fa-user"></i>
+            <span id="accountLabel" data-i18n="signIn">Sign in</span>
+          </button>
           <!-- Language Toggle -->
           <button id="langToggleBtn" class="lang-toggle-btn" title="Switch language" aria-label="Switch language">
             <i class="fa-solid fa-globe"></i>
@@ -143,28 +148,48 @@
         </button>
       </div>
 
-      <!-- Fake Checkout -->
-      <form id="checkoutForm" class="checkout-form" hidden>
+      <!-- Redirect to real Stripe Checkout -->
+      <div id="checkoutStep" class="checkout-form" hidden>
         <p class="checkout-summary" id="checkoutSummary"></p>
-        <input type="text" id="cardName" placeholder="Name on card" autocomplete="off" />
-        <input type="text" id="cardNumber" placeholder="4242 4242 4242 4242" inputmode="numeric" maxlength="19" autocomplete="off" />
-        <div class="checkout-row">
-          <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" autocomplete="off" />
-          <input type="text" id="cardCvc" placeholder="CVC" maxlength="4" inputmode="numeric" autocomplete="off" />
-        </div>
-        <button type="submit" class="btn btn-primary btn-pay" id="payBtn">
+        <button class="btn btn-primary btn-pay" id="payBtn">
           <i class="fa-solid fa-lock"></i>
           <span data-i18n="payNow">Pay Now</span>
         </button>
-        <p class="demo-note" data-i18n="demoNote">Demo only — no real payment is processed</p>
+        <p class="demo-note" data-i18n="secureNote">Secure payment powered by Stripe</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth Modal (Login / Signup) -->
+  <div id="authModal" class="modal-overlay" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <button id="closeAuthBtn" class="modal-close" aria-label="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="modal-header">
+        <i class="fa-solid fa-user-lock crown-icon"></i>
+        <h2 id="authTitle" data-i18n="authTitleSignIn">Sign in</h2>
+        <p data-i18n="authSubtitle">Sync your subscription across devices</p>
+      </div>
+
+      <form id="authForm" class="checkout-form">
+        <input type="email" id="authEmail" placeholder="Email" autocomplete="email" required />
+        <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password" minlength="6" required />
+        <p id="authError" class="auth-error" hidden></p>
+        <button type="submit" class="btn btn-primary btn-pay" id="authSubmitBtn">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          <span id="authSubmitLabel" data-i18n="authTitleSignIn">Sign in</span>
+        </button>
+        <button type="button" id="authSwitchBtn" class="btn btn-outline">
+          <span id="authSwitchLabel" data-i18n="authSwitchToSignUp">Need an account? Sign up</span>
+        </button>
       </form>
 
-      <!-- Success -->
-      <div id="paymentSuccess" class="payment-success" hidden>
-        <i class="fa-solid fa-circle-check"></i>
-        <h3 data-i18n="paymentSuccess">Welcome to Pro!</h3>
-        <p data-i18n="proActive">Your subscription is now active.</p>
-      </div>
+      <button id="logoutBtn" class="btn btn-danger" hidden>
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span data-i18n="logout">Sign out</span>
+      </button>
     </div>
   </div>
 
